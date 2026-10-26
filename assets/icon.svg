@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+
+    <radialGradient id="whiteGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.4)" />
+      <stop offset="40%" stop-color="rgba(255, 255, 255, 0.1)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0)" />
+    </radialGradient>
+
+
+    <radialGradient id="orangeCore" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#FFD166" /> <!-- Light center -->
+      <stop offset="50%" stop-color="#FF7A00" /> <!-- Primary orange -->
+      <stop offset="95%" stop-color="#D93800" /> <!-- Dark edge -->
+      <stop offset="100%" stop-color="#8C1C00" /> <!-- Deep outline -->
+    </radialGradient>
+
+
+    <linearGradient id="glassHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.8)" />
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.1)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0)" />
+    </linearGradient>
+
+
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4AF2A1" /> <!-- Neon mint -->
+      <stop offset="100%" stop-color="#1B8C56" /> <!-- Dark green -->
+    </linearGradient>
+
+
+    <linearGradient id="uiGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.05)" />
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.2)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
+    </linearGradient>
+
+
+    <filter id="blurGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="#000000" />
+
+
+  <circle cx="128" cy="140" r="110" fill="url(#whiteGlow)" />
+
+  <circle cx="128" cy="140" r="76" fill="#FF7A00" filter="url(#blurGlow)" opacity="0.3" />
+
+
+  <circle cx="128" cy="140" r="72" fill="url(#orangeCore)" />
+  
+
+  <circle cx="128" cy="140" r="71" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" />
+  
+
+  <path d="M 68 122 C 68 84 92 68 128 68 C 164 68 188 84 188 122 C 176 95 154 82 128 82 C 102 82 80 95 68 122 Z" fill="url(#glassHighlight)" />
+  
+
+  <ellipse cx="100" cy="105" rx="16" ry="10" transform="rotate(-30 100 105)" fill="rgba(255,255,255,0.9)" filter="blur(1px)"/>
+
+
+
+  <path d="M 128 68 C 135 42 168 42 176 55 C 168 78 138 82 128 68 Z" fill="url(#leafGrad)" />
+
+  <path d="M 136 55 C 145 50 160 50 168 56 C 155 62 145 62 136 55 Z" fill="rgba(255,255,255,0.4)" />
+
+  <path d="M 128 68 Q 130 82 135 95" stroke="#1B8C56" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+
+  <rect x="88" y="184" width="80" height="10" rx="5" fill="url(#uiGlass)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  
+
+  <circle cx="108" cy="189" r="2" fill="rgba(255,255,255,0.8)" />
+  <circle cx="128" cy="189" r="2" fill="rgba(255,255,255,0.3)" />
+  <circle cx="148" cy="189" r="2" fill="rgba(255,255,255,0.3)" />
+</svg>

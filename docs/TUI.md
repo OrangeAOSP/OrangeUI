@@ -1,84 +1,89 @@
-# 🖥️ OrangeUI TUI Manual
+# 🖥️ OrangeUI TUI Manual (Afterglow Edition)
 
-Терминальный графический интерфейс (TUI) для инструментария OrangeUI.
+Terminal User Interface (TUI) for the OrangeUI ROM & GSI Customization Toolkit.
 
-Написан на языке **Rust** с использованием современных библиотек `ratatui` (v0.30) и `crossterm` (v0.29).
+Written in **Rust** using `ratatui` (v0.30) and `crossterm` (v0.29).
 
 ---
 
-## 1. Сборка и запуск
+## 1. Compilation & Launch
 
-### 1.1. Сборка из исходников
-Для сборки требуется компилятор Rust 1.80+ и Cargo:
+### 1.1. Build from Source
+Requires Rust 1.80+ and Cargo:
 ```bash
 cd tui
 cargo build --release
 ```
-Бинарный файл будет скомпилирован в `tui/target/release/orangeui-tui`.
+The binary will be compiled to `tui/target/release/orangeui-tui`.
 
-### 1.2. Быстрый запуск
-Из корня проекта OrangeUI:
+### 1.2. Launching TUI
+From the root of the OrangeUI workspace:
 ```bash
 ./tui/target/release/orangeui-tui
 ```
-или через Cargo:
+
+### 1.3. Direct CLI Mode via TUI Binary
+The compiled Rust binary can also be invoked directly with CLI flags:
 ```bash
-cargo run --manifest-path tui/Cargo.toml --release
+./tui/target/release/orangeui-tui --line
+./tui/target/release/orangeui-tui --clear=all
+./tui/target/release/orangeui-tui --compact-gzip=out
 ```
 
 ---
 
-## 2. Архитектура и внешний вид
+## 2. Layout & Interface Architecture
 
-Интерфейс разделен на три функциональные зоны:
+The TUI is structured into three primary panels:
 
-1. **Верхний заголовок (Header):**
-   - Название: `🍊 OrangeUI Toolkit — Custom ROM & GSI Builder (Liquid Glass)`.
-   - Индикатор статуса:
-     - `[READY]` — система в режиме ожидания.
-     - `[RUNNING: <Task>]` (желтый) — выполняется фоновый процесс Python CLI.
-     - `[SUCCESS: <Task>]` (зеленый) — задача успешно завершена с кодом 0.
-     - `[FAILED: <Task> (code)]` (красный) — задача завершилась с ошибкой.
+1. **Header:**
+   - Title: `🍊 OrangeUI Toolkit — Custom ROM & GSI Builder (Afterglow Edition)`
+   - Status Badge:
+     - `[READY]` — system idle.
+     - `[RUNNING: <Task>]` (yellow) — Python background process executing.
+     - `[SUCCESS: <Task>]` (green) — task completed with exit code 0.
+     - `[FAILED: <Task> (code)]` (red) — process terminated with error.
 
-2. **Основная рабочая область:**
-   - **Левая панель (Меню операций + карточка задачи):**
-     - Список пунктов меню с яркими порядковыми номерами.
-     - Информационная карточка с кратким описанием, относительным путем к скрипту и строкой аргументов запуска.
-   - **Правая панель (Консоль логов в реальном времени):**
-     - Вывод `stdout` (белый) и `stderr` (красный) запущенных Python-скриптов.
-     - Автоскроллинг к последним строкам.
-     - Возможность прокрутки вверх для чтения истории.
+2. **Main Workspace:**
+   - **Left Panel (Operations Menu + Task Details):**
+     - Operations list with numeric indices.
+     - Task detail card displaying script path, description, and CLI arguments.
+   - **Right Panel (Real-Time Output Console):**
+     - Colored live stream of `stdout` (white) and `stderr` (red).
+     - Automatic scrolling to the latest output.
 
-3. **Нижняя строка (Footer):**
-   - Подсказки по горячим клавишам навигации и управления.
+3. **Footer:**
+   - Navigation hotkey hints.
 
 ---
 
-## 3. Пункты меню
+## 3. Operations Menu
 
-| Номер | Пункт меню | Соответствующая команда |
+| Index | Operation Title | Executed Command |
 |---|---|---|
-| `[1]` | **Распаковать super.img** | `python3 cli/repack_super.py unpack --input super.img --output extracted/super` |
-| `[2]` | **Извлечь APK из HyperOS** | `python3 cli/extract_hyperos.py --system system.img --output inject` |
-| `[3]` | **Внедрить APK из inject/** | `python3 cli/inject_apks.py --target extracted/super --inject inject` |
-| `[4]` | **Собрать super.img** | `python3 cli/repack_super.py repack --input extracted/super --output releases/super.img` |
-| `[5]` | **Сборка OrangeUI для Charoite** | `python3 cli/charoite_builder.py --output releases/charoite` |
-| `[6]` | **Патчинг Framework (Smali)** | `python3 cli/patch_framework.py dir --path extracted/smali` |
-| `[7]` | **Диагностика и манифест** | `python3 cli/manifest_parser.py --manifest inject/manifest.json --show` |
-| `[8]` | **Выход** | Завершение работы программы |
+| `[ 1]` | **Line: Full Pipeline Execution** | `python3 cli/pipeline.py --line` |
+| `[ 2]` | **Unpack super.img** | `python3 cli/repack_super.py unpack --input super.img --output extracted/super` |
+| `[ 3]` | **Extract HyperOS Apps & Frameworks** | `python3 cli/extract_hyperos.py --system extracted/charoite --output inject` |
+| `[ 4]` | **Inject APKs & Frameworks** | `python3 cli/inject_apks.py --target extracted/super --inject inject` |
+| `[ 5]` | **Repack super.img** | `python3 cli/repack_super.py repack --input extracted/super --output releases/super.img` |
+| `[ 6]` | **Build OrangeUI for Charoite** | `python3 cli/charoite_builder.py --output releases/charoite` |
+| `[ 7]` | **Clear Cache: RAW Images** | `python3 cli/pipeline.py --clear=raw` |
+| `[ 8]` | **Clear Cache: Full Purge** | `python3 cli/pipeline.py --clear=all` |
+| `[ 9]` | **Clear Cache: Output Artifacts** | `python3 cli/pipeline.py --clear=out` |
+| `[10]` | **Compact: GZIP Output Files** | `python3 cli/pipeline.py --compact-gzip=out` |
+| `[11]` | **Compact: XZ Maximum Compression** | `python3 cli/pipeline.py --compact-xz=out` |
+| `[12]` | **Compact: TAR Uncompressed** | `python3 cli/pipeline.py --compact-tar=all` |
+| `[13]` | **Patch Framework (Smali)** | `python3 cli/patch_framework.py dir --path extracted/smali` |
+| `[14]` | **Diagnostics & Manifest** | `python3 cli/manifest_parser.py --manifest inject/manifest.json --show` |
+| `[15]` | **Exit** | Terminate OrangeUI TUI |
 
 ---
 
-## 4. Горячие клавиши
+## 4. Keybindings
 
-- `↑` / `↓` — перемещение курсора по пунктам меню.
-- `Enter` — запуск выбранного пункта меню.
-- `1` .. `8` — быстрый выбор и немедленный запуск соответствующей задачи по её номеру.
-- `PageUp` / `PageDown` — ручная прокрутка журнала логов вверх и вниз.
-- `C` — очистить экран логов.
-- `Q` или `Esc` — выход из TUI.
-
----
-
-## 5. Многопоточность и неблокирующий ввод
-TUI работает в полностью асинхронном режиме: при запуске задачи создается фоновый системный поток `std::thread`, перенаправляющий `stdout` и `stderr` через потокобезопасный канал `mpsc::channel`. Это гарантирует, что интерфейс TUI никогда не зависает, сохраняет частоту обновления 60 кадров/сек и мгновенно реагирует на ввод пользователя даже при тяжелых операциях распаковки или сборки гигабайтных образов.
+- `↑` / `↓` — Navigate menu items.
+- `Enter` — Launch selected operation.
+- `1` .. `9` — Quick launch corresponding operation by number.
+- `PageUp` / `PageDown` — Scroll log history up and down.
+- `C` — Clear log output buffer.
+- `Q` or `Esc` — Exit TUI.

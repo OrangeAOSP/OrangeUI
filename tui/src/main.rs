@@ -32,57 +32,106 @@ struct MenuItem {
 const MENU_ITEMS: &[MenuItem] = &[
     MenuItem {
         index: 1,
-        title: "Распаковать super.img",
-        description: "Распаковка разделов system, vendor, product с помощью lpunpack",
+        title: "Line: Full Pipeline Execution (--line)",
+        description: "Run complete ROM modification chain: unpack, extract HyperOS, patch, build release",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--line"],
+    },
+    MenuItem {
+        index: 2,
+        title: "Unpack super.img",
+        description: "Extract system, vendor, product, system_ext, mi_ext partitions via lpunpack",
         script_rel: "cli/repack_super.py",
         default_args: &["unpack", "--input", "super.img", "--output", "extracted/super"],
     },
     MenuItem {
-        index: 2,
-        title: "Извлечь APK из HyperOS",
-        description: "Поиск и копирование системных приложений и lib64 из донора HyperOS",
+        index: 3,
+        title: "Extract HyperOS Apps & Frameworks",
+        description: "Discover and copy system applications, lib64 native libs, and framework jars",
         script_rel: "cli/extract_hyperos.py",
-        default_args: &["--system", "system.img", "--output", "inject"],
+        default_args: &["--system", "extracted/charoite", "--output", "inject"],
     },
     MenuItem {
-        index: 3,
-        title: "Внедрить APK из inject/",
-        description: "Инъекция APK, lib64, build.prop.patch и sepolicy по manifest.json",
+        index: 4,
+        title: "Inject APKs & Frameworks",
+        description: "Inject APKs, lib64, framework jars, build.prop.patch, and sepolicy into system",
         script_rel: "cli/inject_apks.py",
         default_args: &["--target", "extracted/super", "--inject", "inject"],
     },
     MenuItem {
-        index: 4,
-        title: "Собрать super.img",
-        description: "Сборка нового super.img с помощью lpmake (sparse, verity disabled)",
+        index: 5,
+        title: "Repack super.img",
+        description: "Build new flashable super.img using lpmake (sparse, dm-verity disabled)",
         script_rel: "cli/repack_super.py",
         default_args: &["repack", "--input", "extracted/super", "--output", "releases/super.img"],
     },
     MenuItem {
-        index: 5,
-        title: "Сборка OrangeUI для Charoite",
-        description: "Пайплайн для Redmi Note 15 Pro 4G: GSI, фиксы MTK, fastboot ZIP",
+        index: 6,
+        title: "Build OrangeUI for Charoite",
+        description: "Redmi Note 15 Pro 4G pipeline: GSI repack, MTK fixes, fastboot flashable ZIP",
         script_rel: "cli/charoite_builder.py",
         default_args: &["--output", "releases/charoite"],
     },
     MenuItem {
-        index: 6,
-        title: "Патчинг Framework (Smali)",
-        description: "Обход подписи в PMS, генерация заглушек для MIUI методов",
+        index: 7,
+        title: "Clear Cache: RAW Images (--clear=raw)",
+        description: "Remove temporary decompressed raw images (*_raw.img, super_unsparse.img)",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--clear=raw"],
+    },
+    MenuItem {
+        index: 8,
+        title: "Clear Cache: Full (--clear=all)",
+        description: "Purge all temporary caches, unpacked partition directories, and build artifacts",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--clear=all"],
+    },
+    MenuItem {
+        index: 9,
+        title: "Clear Cache: Output Artifacts (--clear=out)",
+        description: "Remove extracted APKs, JARs in inject/ and generated release packages",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--clear=out"],
+    },
+    MenuItem {
+        index: 10,
+        title: "Compact: GZIP Outputs (--compact-gzip=out)",
+        description: "Package output APKs and framework JARs into a compressed .tar.gz archive",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--compact-gzip=out"],
+    },
+    MenuItem {
+        index: 11,
+        title: "Compact: XZ Maximum Compression (--compact-xz=out)",
+        description: "Package output APKs and JARs into ultra-compressed .tar.xz (preset 9)",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--compact-xz=out"],
+    },
+    MenuItem {
+        index: 12,
+        title: "Compact: TAR Uncompressed (--compact-tar=all)",
+        description: "Package all workspace deliverables into an uncompressed .tar archive",
+        script_rel: "cli/pipeline.py",
+        default_args: &["--compact-tar=all"],
+    },
+    MenuItem {
+        index: 13,
+        title: "Patch Framework (Smali)",
+        description: "Bypass signature verification in PMS and generate MIUI stub classes",
         script_rel: "cli/patch_framework.py",
         default_args: &["dir", "--path", "extracted/smali"],
     },
     MenuItem {
-        index: 7,
-        title: "Диагностика и манифест",
-        description: "Проверка системных утилит toolchain и валидация manifest.json",
+        index: 14,
+        title: "Diagnostics & Manifest Validation",
+        description: "Verify host toolchain dependencies and validate manifest.json strictly",
         script_rel: "cli/manifest_parser.py",
         default_args: &["--manifest", "inject/manifest.json", "--show"],
     },
     MenuItem {
-        index: 8,
-        title: "Выход",
-        description: "Завершение работы OrangeUI TUI",
+        index: 15,
+        title: "Exit",
+        description: "Exit OrangeUI TUI shell",
         script_rel: "",
         default_args: &[],
     },
@@ -126,8 +175,8 @@ impl App {
             repo_root,
         };
 
-        app.add_log(Color::Yellow, "🍊 Добро пожаловать в OrangeUI TUI Shell!");
-        app.add_log(Color::DarkGray, "Готов к выполнению задач. Выберите пункт стрелками или цифрами 1-8.");
+        app.add_log(Color::Yellow, "🍊 Welcome to OrangeUI TUI Shell (Afterglow Edition)!");
+        app.add_log(Color::DarkGray, "Ready for tasks. Use arrows or numbers to navigate and launch operations.");
         app
     }
 
@@ -171,21 +220,21 @@ impl App {
         }
 
         let item = &MENU_ITEMS[idx];
-        if item.index == 8 {
+        if item.script_rel.is_empty() {
             // Exit option handled by caller
             return;
         }
 
         if let TaskStatus::Running(ref name) = self.status {
-            self.add_log(Color::Red, &format!("Задача '{name}' уже выполняется! Подождите завершения."));
+            self.add_log(Color::Red, &format!("Task '{name}' is already running! Please wait for completion."));
             return;
         }
 
         let script_path = self.repo_root.join(item.script_rel);
         let args: Vec<String> = item.default_args.iter().map(|s| s.to_string()).collect();
 
-        self.add_log(Color::Cyan, &format!("--- Запуск задачи: {} ---", item.title));
-        self.add_log(Color::DarkGray, &format!("Команда: python3 {} {}", item.script_rel, args.join(" ")));
+        self.add_log(Color::Cyan, &format!("--- Launching Task: {} ---", item.title));
+        self.add_log(Color::DarkGray, &format!("Command: python3 {} {}", item.script_rel, args.join(" ")));
 
         self.status = TaskStatus::Running(item.title.to_string());
 
@@ -205,7 +254,7 @@ impl App {
             {
                 Ok(c) => c,
                 Err(e) => {
-                    let _ = tx.send(ProcessMessage::Line(true, format!("Ошибка запуска процесса: {e}")));
+                    let _ = tx.send(ProcessMessage::Line(true, format!("Failed to spawn process: {e}")));
                     let _ = tx.send(ProcessMessage::Finished(false, 1));
                     return;
                 }
@@ -245,7 +294,7 @@ impl App {
                     let _ = tx.send(ProcessMessage::Finished(exit_status.success(), code));
                 }
                 Err(e) => {
-                    let _ = tx.send(ProcessMessage::Line(true, format!("Ошибка ожидания процесса: {e}")));
+                    let _ = tx.send(ProcessMessage::Line(true, format!("Error waiting for process: {e}")));
                     let _ = tx.send(ProcessMessage::Finished(false, 1));
                 }
             }
@@ -276,14 +325,14 @@ impl App {
         if let Some((success, code)) = finished {
             let current_name = match &self.status {
                 TaskStatus::Running(n) => n.clone(),
-                _ => "Задача".to_string(),
+                _ => "Task".to_string(),
             };
 
             if success {
-                self.add_log(Color::Green, &format!("✓ {} успешно завершена (код 0)", current_name));
+                self.add_log(Color::Green, &format!("✓ {} completed successfully (exit code 0)", current_name));
                 self.status = TaskStatus::Success(current_name);
             } else {
-                self.add_log(Color::LightRed, &format!("✗ {} завершилась с ошибкой (код {})", current_name, code));
+                self.add_log(Color::LightRed, &format!("✗ {} failed (exit code {})", current_name, code));
                 self.status = TaskStatus::Failed(current_name, code);
             }
             self.receiver = None;
@@ -302,13 +351,28 @@ fn find_repo_root() -> PathBuf {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let repo_root = find_repo_root();
+
+    // If CLI flags were passed directly to TUI binary (--line, --clear=..., --compact-gzip=..., etc.)
+    if args.len() > 1 {
+        let pipeline_script = repo_root.join("cli/pipeline.py");
+        let mut cmd = Command::new("python3");
+        cmd.arg(&pipeline_script);
+        for a in args.iter().skip(1) {
+            cmd.arg(a);
+        }
+        cmd.current_dir(&repo_root);
+        let status = cmd.status()?;
+        std::process::exit(status.code().unwrap_or(0));
+    }
+
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let repo_root = find_repo_root();
     let mut app = App::new(repo_root);
 
     let tick_rate = Duration::from_millis(50);
@@ -329,7 +393,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         KeyCode::Char('c') => {
                             app.log_lines.clear();
                             app.log_scroll = 0;
-                            app.add_log(Color::DarkGray, "Лог очищен.");
+                            app.add_log(Color::DarkGray, "Log buffer cleared.");
                         }
                         KeyCode::Up => {
                             app.select_prev();
@@ -356,7 +420,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         KeyCode::Enter => {
                             let selected = app.menu_state.selected().unwrap_or(0);
-                            if selected == 7 {
+                            if selected == MENU_ITEMS.len() - 1 {
                                 should_exit = true;
                             } else {
                                 app.run_selected();
@@ -367,7 +431,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 if digit >= 1 && (digit as usize) <= MENU_ITEMS.len() {
                                     let idx = (digit - 1) as usize;
                                     app.select_index(idx);
-                                    if idx == 7 {
+                                    if idx == MENU_ITEMS.len() - 1 {
                                         should_exit = true;
                                     } else {
                                         app.run_item_at(idx);
@@ -421,7 +485,7 @@ fn ui(f: &mut Frame, app: &mut App) {
 
     let header_line = Line::from(vec![
         Span::styled("🍊 OrangeUI Toolkit ", Style::default().fg(Color::Rgb(255, 140, 0)).add_modifier(Modifier::BOLD)),
-        Span::raw("— Custom ROM & GSI Builder (Liquid Glass)  "),
+        Span::raw("— Custom ROM & GSI Builder (Afterglow Edition)  "),
         status_span,
     ]);
 
@@ -435,8 +499,8 @@ fn ui(f: &mut Frame, app: &mut App) {
     let body_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(42), // Left: Menu
-            Constraint::Percentage(58), // Right: Logs
+            Constraint::Percentage(44), // Left: Menu
+            Constraint::Percentage(56), // Right: Logs
         ])
         .split(chunks[1]);
 
@@ -453,7 +517,7 @@ fn ui(f: &mut Frame, app: &mut App) {
         .iter()
         .map(|item| {
             ListItem::new(Line::from(vec![
-                Span::styled(format!("[{}] ", item.index), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(format!("[{:>2}] ", item.index), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
                 Span::raw(item.title),
             ]))
         })
@@ -462,7 +526,7 @@ fn ui(f: &mut Frame, app: &mut App) {
     let menu_list = List::new(menu_items)
         .block(
             Block::default()
-                .title(" Меню операций ")
+                .title(" Operations Menu ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan)),
         )
@@ -481,28 +545,28 @@ fn ui(f: &mut Frame, app: &mut App) {
     let selected_item = &MENU_ITEMS[selected_idx];
     let detail_text = vec![
         Line::from(vec![
-            Span::styled("Описание: ", Style::default().fg(Color::Yellow)),
+            Span::styled("Description: ", Style::default().fg(Color::Yellow)),
             Span::raw(selected_item.description),
         ]),
         Line::from(vec![
-            Span::styled("Скрипт: ", Style::default().fg(Color::Cyan)),
+            Span::styled("Script: ", Style::default().fg(Color::Cyan)),
             Span::raw(selected_item.script_rel),
         ]),
         Line::from(vec![
-            Span::styled("Параметры: ", Style::default().fg(Color::Magenta)),
+            Span::styled("Arguments: ", Style::default().fg(Color::Magenta)),
             Span::raw(selected_item.default_args.join(" ")),
         ]),
     ];
 
     let detail_block = Block::default()
-        .title(" Сведения о задаче ")
+        .title(" Task Details ")
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::DarkGray));
     let detail_para = Paragraph::new(detail_text).block(detail_block).wrap(Wrap { trim: true });
     f.render_widget(detail_para, left_chunks[1]);
 
     // Right Column: Live Log Console
-    let log_title = format!(" Журнал вывода ({}) ", app.log_lines.len());
+    let log_title = format!(" Output Console ({}) ", app.log_lines.len());
     let log_block = Block::default()
         .title(log_title)
         .borders(Borders::ALL)
@@ -524,15 +588,15 @@ fn ui(f: &mut Frame, app: &mut App) {
     // 3. Footer: Navigation hotkeys
     let footer_text = Line::from(vec![
         Span::styled("[↑/↓] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Выбор  "),
-        Span::styled("[Enter / 1-8] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Запуск  "),
+        Span::raw("Navigate  "),
+        Span::styled("[Enter] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::raw("Launch  "),
         Span::styled("[PgUp/PgDn] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Прокрутка  "),
+        Span::raw("Scroll  "),
         Span::styled("[C] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Очистить  "),
+        Span::raw("Clear  "),
         Span::styled("[Q / Esc] ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        Span::raw("Выход"),
+        Span::raw("Exit"),
     ]);
 
     let footer_block = Block::default()

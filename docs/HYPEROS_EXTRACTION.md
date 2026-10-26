@@ -1,79 +1,67 @@
-# 📦 Извлечение приложений и библиотек из HyperOS
+# 📦 HyperOS Application & Framework Extraction Guide
 
-Руководство по извлечению системных компонентов стоковых прошивок Xiaomi HyperOS для портирования в OrangeUI Liquid Glass.
-
----
-
-## 1. Подготовка донорской прошивки
-
-Для извлечения приложений вам потребуется официальная стоковая прошивка HyperOS (Fastboot ROM или Recovery ROM):
-- Для Fastboot ROM: внутри архива находится файл `super.img` или `images/system.img`.
-- Для Recovery ROM: внутри архива `payload.bin`, распаковать который можно утилитой `payload-dumper-go`.
+Complete instructions for extracting system applications, native shared libraries, and framework jars from stock Xiaomi HyperOS firmware for porting into OrangeUI Liquid Glass.
 
 ---
 
-## 2. Шаг 1: Распаковка разделов
+## 1. Preparing the Donor Firmware
 
-Если у вас на руках `super.img`:
+Acquire an official Xiaomi HyperOS Fastboot ROM or Recovery ROM archive:
+- **Fastboot ROM:** Contains `super.img` or `images/system.img`.
+- **Recovery ROM:** Contains `payload.bin`, extractable using `payload-dumper-go`.
+
+---
+
+## 2. Step 1: Unpacking Partition Images
+
+Unpack dynamic partition images using the OrangeUI CLI:
 ```bash
-python3 cli/repack_super.py unpack --input /path/to/hyperos/super.img --output extracted/hyperos
+python3 cli/repack_super.py unpack --input /path/to/hyperos/super.img --output extracted/charoite
 ```
-Скрипт автоматически определит тип `super.img` (sparse/raw), извлечет разделы `system`, `vendor`, `product` и определит их файловую систему (EXT4 или EROFS).
+The utility automatically converts Android sparse images (`simg2img`), inspects liblp partition metadata (`lpdump`), and extracts active slot partitions (`system`, `product`, `system_ext`, `mi_ext`, `vendor`).
 
 ---
 
-## 3. Шаг 2: Извлечение системных APK
+## 3. Step 2: Extracting Applications & Framework Components
 
-Запустите утилиту автоматического извлечения и анализа зависимостей:
+Run the automated extractor:
 ```bash
-python3 cli/extract_hyperos.py \
-  --system extracted/hyperos/system.img \
-  --output inject/ \
-  --targets MiuiHome Settings MiuiSystemUI ThemeManager
+python3 cli/extract_hyperos.py --system extracted/charoite/ --output inject/
 ```
 
-### Ключевые приложения HyperOS:
-1. **Лаунчер (Рабочий стол):**
-   - Путь в HyperOS: `/system/priv-app/MiuiHome/MiuiHome.apk`
-   - Особенности: отвечает за жесты навигации, анимацию открывания приложений, сетку иконок и виджеты.
-2. **Панель управления и шторка (SystemUI):**
-   - Путь в HyperOS: `/system/priv-app/MiuiSystemUI/MiuiSystemUI.apk`
-   - Особенности: содержит фирменный центр управления Liquid Glass.
-3. **Настройки (Settings):**
-   - Путь в HyperOS: `/system/priv-app/Settings/Settings.apk`
-4. **Темы оформления (ThemeManager):**
-   - Путь в HyperOS: `/system/app/ThemeManager/ThemeManager.apk`
+### Key Extracted Components:
+1. **HyperOS Launcher:**
+   - Path: `/system/product/priv-app/MiuiHome/MiuiHome.apk`
+   - Handles gesture navigation, fluid glass animations, and icon layouts.
+2. **SystemUI & Control Center:**
+   - Path: `/system/product/priv-app/MIUISystemUIPlugin/MIUISystemUIPlugin.apk`
+   - Houses the signature Liquid Glass control center.
+3. **Settings:**
+   - Path: `/system/product/priv-app/MISettings/MISettings.apk`
+4. **Theme Manager:**
+   - Path: `/system/product/app/MIUIThemeManagerGlobal/MIUIThemeManagerGlobal.apk`
+5. **Leica / Xiaomi Camera:**
+   - Path: `/system/product/priv-app/MiuiCamera/MiuiCamera.apk`
 
 ---
 
-## 4. Шаг 3: Автоматический сбор нативных библиотек (.so)
+## 4. Step 3: Extracting Xiaomi Core Frameworks
 
-Многие приложения HyperOS (особенно `MiuiHome` и `MiuiSystemUI`) зависят от проприетарных C++ библиотек.
-Скрипт `cli/extract_hyperos.py`:
-1. Сканирует DEX-байткод извлеченных приложений.
-2. Ищет вызовы `System.loadLibrary(...)`.
-3. Анализирует зависимости ELF `DT_NEEDED`.
-4. Автоматически находит и копирует только 64-битные версии (`arm64-v8a`) из `/system/lib64/` прошивки-донора в папку `inject/lib64/`.
+In modern HyperOS, Xiaomi places core framework modules inside `system_ext`:
+- `miui-framework.jar` (Core MIUI/HyperOS APIs)
+- `miui-services.jar` (Xiaomi system server extensions)
+- `xiaomi-framework.jar`
+- `miuix.jar` (Liquid Glass visual elements & widgets)
+- `MiuiBooster.jar`
+- `framework.jar`, `services.jar`, and `framework-res.apk`
 
-Типичные библиотеки HyperOS:
-- `libthemeutils_jni.so`
-- `libshell_transition_jni.so`
-- `libblur_jni.so` (алгоритмы размытия Liquid Glass)
+The extractor automatically pulls these into `inject/framework/` and adds entries into `inject/manifest.json`.
 
 ---
 
-## 5. Шаг 4: Формирование manifest.json
+## 5. Step 4: Validating the Injection Manifest
 
-Скрипт `extract_hyperos.py` сразу генерирует готовый файл `inject/manifest.json`:
-```json
-{
-  "MiuiHome.apk": "/system/priv-app/MiuiHome/MiuiHome.apk",
-  "Settings.apk": "/system/priv-app/Settings/Settings.apk",
-  "lib64/libblur_jni.so": "/system/lib64/libblur_jni.so"
-}
-```
-
-Проверить валидность сгенерированного манифеста можно командой:
+Verify all extracted files strictly:
 ```bash
 python3 cli/manifest_parser.py --manifest inject/manifest.json --validate
 ```

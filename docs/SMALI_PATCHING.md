@@ -1,21 +1,22 @@
-# 💉 Руководство по Smali-патчингу фреймворка для OrangeUI
+# 💉 Smali & Bytecode Patching Guide for OrangeUI
 
-При портировании приложений HyperOS в AOSP / Treble GSI возникают две ключевые проблемы:
-1. **Несовпадение цифровых подписей:** AOSP отклоняет запуск системных приложений, подписанных сертификатами Xiaomi, либо приложений с замененными ресурсами.
-2. **Отсутствие MIUI API:** приложения HyperOS обращаются к закрытым методам классов `miui.*` и `com.miui.*`, а также проверяют свойства `ro.miui.*` / `ro.hyperos.*`.
+When porting Xiaomi HyperOS system applications to AOSP or Treble GSI bases, two primary compatibility hurdles arise:
+1. **Signature Verification Mismatch:** Android PackageManagerService rejects OEM system applications that are signed with Xiaomi private keys or modified with custom resources.
+2. **Missing MIUI API References:** HyperOS applications invoke proprietary classes in `miui.*` and `com.miui.*`, and query system properties such as `ro.miui.*` and `ro.hyperos.*`.
 
 ---
 
-## 1. Отключение проверки подписей (PMS Signature Bypass)
+## 1. PackageManagerService Signature Bypass
 
-В Android служба управления пакетами `PackageManagerService` сверяет сертификаты в методе `compareSignatures`.
+In Android PMS, signature checking is performed within `compareSignatures`:
 
-### Реализация в `cli/patch_framework.py`:
-Метод патчера находит сигнатуру метода:
+### Smali Bytecode Modification:
+Original method signature:
 ```smali
 .method public static compareSignatures([Landroid/content/pm/Signature;[Landroid/content/pm/Signature;)I
 ```
-В AOSP метод должен возвращать `0` (`PackageManager.SIGNATURE_MATCH`):
+
+In AOSP PMS, returning `0` (`PackageManager.SIGNATURE_MATCH`) forces signature checks to succeed:
 ```smali
 .method public static compareSignatures([Landroid/content/pm/Signature;[Landroid/content/pm/Signature;)I
     .registers 3
@@ -25,7 +26,7 @@
     return v0
 .end method
 ```
-Если метод возвращает булево значение (`...()Z`):
+If the comparison method returns boolean (`...()Z`):
 ```smali
     .registers 3
 
@@ -34,18 +35,18 @@
     return v0
 ```
 
-Запуск автоматического патчера:
+Execute the automated patcher across decompiled smali trees:
 ```bash
 python3 cli/patch_framework.py dir --path extracted/services_smali
 ```
 
 ---
 
-## 2. Нейтрализация проверок системных свойств (`ro.miui.*`)
+## 2. Neutralizing System Property Checks (`ro.miui.*`)
 
-HyperOS-приложения проверяют окружение через `SystemProperties.get("ro.miui.ui.version.name")` или похожие ключи. Если они пустые, приложение может аварийно завершиться.
+HyperOS applications check the operating environment via `SystemProperties.get("ro.miui.ui.version.name")`. If unhandled, applications may throw exceptions or fail initialization.
 
-Патчер заменяет строковые константы `ro.miui.*` на заглушки или редиректы, а файл `inject/build.prop.patch` внедряет фиктивные значения в систему:
+The patcher substitutes `ro.miui.*` tokens with mock values, while `inject/build.prop.patch` injects default properties into `build.prop`:
 ```properties
 persist.sys.orangeui.liquid_glass=1
 persist.sys.orangeui.monet=0
@@ -55,16 +56,14 @@ ro.miui.ui.version.code=816
 
 ---
 
-## 3. Генерация Smali-заглушек (Stubs)
+## 3. Generating Smali Stubs
 
-Если приложению требуется класс или метод из `miui-framework`, которого нет в AOSP, создается smali-класс заглушка.
+For classes or methods that are missing in the target AOSP base:
+- **Object types (`L...;`):** return `null` (`const/4 v0, 0x0`, `return-object v0`).
+- **Primitives and booleans (`Z`, `I`, `J`):** return `0` / `false` (`const/4 v0, 0x0`, `return v0`).
+- **Void (`V`):** return `return-void`.
 
-Правила формирования заглушек:
-- **Объекты (`Ljava/lang/...;`):** возвращают `null` (`const/4 v0, 0x0`, `return-object v0`).
-- **Числа и булевы значения (`Z`, `I`, `J`):** возвращают `0` / `false` (`const/4 v0, 0x0`, `return v0`).
-- **Void (`V`):** пустой возврат (`return-void`).
-
-### Пример команды генерации:
+### Stub Generation Command:
 ```bash
 python3 cli/patch_framework.py stub \
   --class-name com.miui.internal.util.DeviceHelper \
@@ -73,9 +72,8 @@ python3 cli/patch_framework.py stub \
 
 ---
 
-## 4. Референсные решения индустрии
-
-- **FrameworkPatcher:** классический патчер `framework.jar`, `services.jar`, `miui-services.jar`.
-- **KaoriOS-RePatcher:** инструмент on-device smali patching.
-- **SRPatch-X:** библиотека перехватов PMS и файлового ввода-вывода (IO hook).
-- **CorePatch / LuckyPatcher:** референсные хуки валидации APK-подписей и даунгрейда версий.
+## 4. Reference Implementations & Tools
+- **FrameworkPatcher:** Patches `framework.jar`, `services.jar`, `miui-services.jar`.
+- **KaoriOS-RePatcher:** On-device smali bytecode patcher.
+- **SRPatch-X:** PMS and IO hook toolkit.
+- **CorePatch / LuckyPatcher:** Reference implementations for APK verification bypass.
