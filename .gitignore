@@ -15,6 +15,7 @@ __pycache__/
 # Extracted donor artifacts
 inject/*.apk
 inject/lib64/
+inject/framework/
 extracted/
 releases/*.img
 releases/*.zip
