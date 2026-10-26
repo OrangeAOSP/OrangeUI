@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E0814" />
+      <stop offset="50%" stop-color="#08070C" />
+      <stop offset="100%" stop-color="#040306" />
+    </linearGradient>
+
+    <!-- Cosmic Twilight / Afterglow Ambient Aurora -->
+    <radialGradient id="twilightGlow" cx="50%" cy="58%" r="65%">
+      <stop offset="0%" stop-color="#FF512F" stop-opacity="0.45" />
+      <stop offset="35%" stop-color="#DD2476" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#4A00E0" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Inner Core Sunset Radiance -->
+    <radialGradient id="afterglowCore" cx="38%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#FFF275" />   <!-- Solar gold highlight -->
+      <stop offset="25%" stop-color="#FF8C00" />  <!-- Pure liquid amber -->
+      <stop offset="65%" stop-color="#FF3E00" />  <!-- Afterglow flame -->
+      <stop offset="90%" stop-color="#A61200" />  <!-- Deep twilight edge -->
+      <stop offset="100%" stop-color="#540800" /> <!-- Silhouette rim -->
+    </radialGradient>
+
+    <!-- Liquid Glass Surface Refraction -->
+    <linearGradient id="glassSheen" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.95)" />
+      <stop offset="25%" stop-color="rgba(255, 255, 255, 0.4)" />
+      <stop offset="55%" stop-color="rgba(255, 255, 255, 0.03)" />
+      <stop offset="85%" stop-color="rgba(255, 200, 150, 0.2)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.6)" />
+    </linearGradient>
+
+    <!-- Glowing Mint Leaf Gradient -->
+    <linearGradient id="mintLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FFA3" />
+      <stop offset="50%" stop-color="#00D26A" />
+      <stop offset="100%" stop-color="#007F43" />
+    </linearGradient>
+
+    <!-- Glass Horizon Pill -->
+    <linearGradient id="horizonPill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.05)" />
+      <stop offset="30%" stop-color="rgba(255, 140, 0, 0.35)" />
+      <stop offset="50%" stop-color="rgba(255, 255, 255, 0.7)" />
+      <stop offset="70%" stop-color="rgba(255, 140, 0, 0.35)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.05)" />
+    </linearGradient>
+
+    <!-- Soft Diffuse Blur -->
+    <filter id="auraBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" />
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Squircle Background -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="2" />
+
+  <!-- Outer Ambient Twilight Glow -->
+  <circle cx="256" cy="275" r="210" fill="url(#twilightGlow)" />
+  <circle cx="256" cy="275" r="148" fill="#FF5E00" filter="url(#auraBlur)" opacity="0.35" />
+
+  <!-- Main Glowing Core Orb -->
+  <circle cx="256" cy="275" r="142" fill="url(#afterglowCore)" />
+  <circle cx="256" cy="275" r="141" fill="none" stroke="rgba(255, 255, 255, 0.45)" stroke-width="3" />
+
+  <!-- Liquid Glass Upper Crescent Reflection -->
+  <path d="M 136 240 C 136 165 184 135 256 135 C 328 135 376 165 376 240 C 352 186 308 162 256 162 C 204 162 160 186 136 240 Z" fill="url(#glassSheen)" />
+
+  <!-- Primary Specular Hotspot -->
+  <ellipse cx="200" cy="205" rx="32" ry="20" transform="rotate(-30 200 205)" fill="rgba(255, 255, 255, 0.92)" filter="url(#softGlow)" />
+  <ellipse cx="196" cy="201" rx="18" ry="10" transform="rotate(-30 196 201)" fill="#FFFFFF" />
+
+  <!-- Lower Counter-Light Caustic -->
+  <path d="M 170 340 C 200 385 312 385 342 340 C 315 365 227 365 170 340 Z" fill="rgba(255, 215, 120, 0.45)" />
+
+  <!-- Stylized Mint Stem and Leaf -->
+  <path d="M 256 135 C 270 82 336 82 352 108 C 336 154 276 162 256 135 Z" fill="url(#mintLeaf)" />
+  <path d="M 272 108 C 290 98 320 98 336 110 C 310 122 290 122 272 108 Z" fill="rgba(255, 255, 255, 0.45)" />
+  <path d="M 256 135 Q 260 162 270 188" stroke="#007F43" stroke-width="5" fill="none" stroke-linecap="round" />
+
+  <!-- Glass Horizon Control Capsule (Liquid Glass Interface Element) -->
+  <rect x="176" y="362" width="160" height="20" rx="10" fill="url(#horizonPill)" stroke="rgba(255, 255, 255, 0.2)" stroke-width="1.5" />
+  <circle cx="216" cy="372" r="4" fill="rgba(255, 255, 255, 0.9)" />
+  <circle cx="256" cy="372" r="4" fill="rgba(255, 140, 0, 0.7)" />
+  <circle cx="296" cy="372" r="4" fill="rgba(255, 255, 255, 0.35)" />
+</svg>

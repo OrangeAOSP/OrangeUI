@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.svg" width="140" height="140" alt="OrangeUI Logo">
+  <img src="assets/afterglow.svg" width="160" height="160" alt="OrangeUI Afterglow Logo">
 </p>
 
 <h1 align="center">🍊 OrangeUI: Afterglow Edition</h1>
