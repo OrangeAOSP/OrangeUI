@@ -1,0 +1,6 @@
+{
+  "OrangeUI_Settings.apk": "/system/priv-app/Settings/Settings.apk",
+  "OrangeUI_Launcher.apk": "/system/priv-app/Launcher3/Launcher3.apk",
+  "OrangeUI_SystemUI.apk": "/system/priv-app/SystemUI/SystemUI.apk",
+  "lib64/libfoo.so": "/system/lib64/libfoo.so"
+}

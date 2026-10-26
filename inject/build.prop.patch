@@ -1,0 +1,7 @@
+# OrangeUI System Properties Patch
+# Liquid Glass interface configuration
+persist.sys.orangeui.liquid_glass=1
+persist.sys.orangeui.monet=0
+persist.sys.orangeui.version=1.0.0
+ro.miui.ui.version.name=V816
+ro.miui.ui.version.code=816

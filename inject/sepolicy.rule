@@ -1,0 +1,4 @@
+# OrangeUI SELinux Rules
+# Allow priv-apps to access OrangeUI theme assets and properties
+allow priv_app system_file:file { execute read open getattr };
+allow priv_app default_prop:file { read open getattr map };

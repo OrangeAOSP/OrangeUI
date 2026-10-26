@@ -1,0 +1,24 @@
+# Build targets
+target/
+tui/target/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Android ROM artifacts
+*.img
+*.img.xz
+*.bin
+extracted/
+releases/*.img
+releases/*.zip
+releases/charoite/*.img
+releases/charoite/*.zip
+releases/cache/
+releases/logs/*.log
+
+# Keep directory structure
+!.gitkeep

@@ -1,0 +1,12 @@
+[package]
+name = "orangeui-tui"
+version = "1.0.0"
+edition = "2021"
+authors = ["OrangeUI Contributors"]
+description = "Terminal User Interface for OrangeUI ROM & GSI Customization Toolkit"
+license = "GPL-3.0"
+
+[dependencies]
+ratatui = "0.30"
+crossterm = "0.29"
+chrono = "0.4"
