@@ -141,7 +141,8 @@ def extract_hyperos_apps(
     output_dir: Path,
     targets: Optional[List[str]] = None,
     extract_all: bool = False,
-    include_libs: bool = True
+    include_libs: bool = True,
+    include_framework: bool = True
 ) -> Dict[str, Path]:
     """
     Extract HyperOS applications and libraries from donor image or directory.
@@ -235,8 +236,13 @@ def extract_hyperos_apps(
         out_lib64_dir.mkdir(parents=True, exist_ok=True)
 
     for apk in selected_apks:
+        if apk.is_symlink() and not apk.exists():
+            continue
         dest_apk = output_dir / apk.name
-        shutil.copy2(apk, dest_apk)
+        try:
+            shutil.copy2(apk, dest_apk)
+        except Exception:
+            continue
         extracted_records[apk.name] = dest_apk
 
         # Inspect dependencies
@@ -270,14 +276,58 @@ def extract_hyperos_apps(
         for lib_name in needed_so_files:
             for d in existing_lib64:
                 cand = d / lib_name
+                if cand.is_symlink() and not cand.exists():
+                    continue
                 if cand.is_file():
                     dest_lib = out_lib64_dir / lib_name
-                    shutil.copy2(cand, dest_lib)
-                    manifest_map[f"lib64/{lib_name}"] = f"/system/lib64/{lib_name}"
-                    collected_libs += 1
-                    break
+                    try:
+                        shutil.copy2(cand, dest_lib)
+                        manifest_map[f"lib64/{lib_name}"] = f"/system/lib64/{lib_name}"
+                        collected_libs += 1
+                        break
+                    except Exception:
+                        continue
 
         logger.info(f"Copied {collected_libs} matching 64-bit native library/libraries into '{out_lib64_dir.name}'.")
+
+    # Collect framework components if requested
+    if include_framework:
+        out_fw_dir = output_dir / "framework"
+        out_fw_dir.mkdir(parents=True, exist_ok=True)
+        fw_jars_copied = 0
+        for d in root_search_dir.rglob("framework"):
+            if d.is_dir():
+                for f in d.glob("*.jar"):
+                    if f.is_symlink() and not f.exists():
+                        continue
+                    if not f.is_file():
+                        continue
+                    is_target_fw = any(k in f.name.lower() for k in ["miui", "xiaomi", "services", "framework", "hyper", "booster"])
+                    if is_target_fw or extract_all:
+                        dest_fw = out_fw_dir / f.name
+                        try:
+                            shutil.copy2(f, dest_fw)
+                        except Exception:
+                            continue
+                        if "system_ext" in str(d):
+                            target_rom = f"/system/system_ext/framework/{f.name}"
+                        elif "product" in str(d):
+                            target_rom = f"/system/product/framework/{f.name}"
+                        else:
+                            target_rom = f"/system/framework/{f.name}"
+                        manifest_map[f"framework/{f.name}"] = target_rom
+                        fw_jars_copied += 1
+
+                fres = d / "framework-res.apk"
+                if fres.is_file() and (not fres.is_symlink() or fres.exists()):
+                    try:
+                        shutil.copy2(fres, out_fw_dir / fres.name)
+                        manifest_map[f"framework/{fres.name}"] = f"/system/framework/{fres.name}"
+                        fw_jars_copied += 1
+                    except Exception:
+                        pass
+
+        logger.info(f"Copied {fw_jars_copied} framework components into '{out_fw_dir.name}'.")
 
     # Generate manifest.json in output_dir
     manifest_dest = output_dir / "manifest.json"
@@ -304,6 +354,7 @@ def main():
     parser.add_argument("--targets", "-t", nargs="+", help="Specific app names to extract (e.g. MiuiHome Settings)")
     parser.add_argument("--all", "-a", action="store_true", help="Extract all discovered APKs")
     parser.add_argument("--no-libs", action="store_true", help="Do not search and copy .so shared libraries")
+    parser.add_argument("--no-framework", action="store_true", help="Do not search and copy framework .jar components")
 
     args = parser.parse_args()
 
@@ -312,7 +363,8 @@ def main():
         output_dir=Path(args.output),
         targets=args.targets,
         extract_all=args.all,
-        include_libs=not args.no_libs
+        include_libs=not args.no_libs,
+        include_framework=not args.no_framework
     )
 
 

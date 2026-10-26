@@ -34,7 +34,7 @@ from cli.utils.logger import get_logger
 
 logger = get_logger("REPACK_SUPER")
 
-DEFAULT_TARGET_PARTITIONS = ["system", "vendor", "product"]
+DEFAULT_TARGET_PARTITIONS = ["system", "vendor", "product", "system_ext", "mi_ext"]
 
 
 class SuperMetadata:
