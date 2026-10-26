@@ -22,6 +22,7 @@ releases/*.zip
 releases/charoite/*.img
 releases/charoite/*.zip
 releases/cache/
+releases/compact/
 releases/logs/*.log
 
 # Keep directory structure
