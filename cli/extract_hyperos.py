@@ -33,12 +33,16 @@ KNOWN_HYPEROS_TARGETS = {
     "MiuiHome": "MiuiHome.apk",
     "Launcher3": "Launcher3.apk",
     "MiuiSystemUI": "MiuiSystemUI.apk",
+    "SystemUI": "SystemUI.apk",
     "Settings": "Settings.apk",
     "MiuiGallery": "MiuiGallery.apk",
+    "MIUIGalleryGlobal": "MIUIGalleryGlobal.apk",
     "MiuiCamera": "MiuiCamera.apk",
     "ThemeManager": "ThemeManager.apk",
     "SecurityAdd": "SecurityAdd.apk",
     "SecurityCenter": "SecurityCenter.apk",
+    "MIUISecurityCenterGlobal": "MIUISecurityCenterGlobal.apk",
+    "MIUIAod": "MIUIAod.apk",
 }
 
 
@@ -97,29 +101,39 @@ def scan_elf_dependencies(so_path: Path) -> List[str]:
 
 
 def locate_apps_in_tree(system_root: Path) -> List[Path]:
-    """Find all APK files in /system/priv-app, /system/app, and subpartitions."""
-    candidate_dirs = [
-        system_root / "system" / "priv-app",
-        system_root / "system" / "app",
-        system_root / "priv-app",
-        system_root / "app",
-        system_root / "product" / "priv-app",
-        system_root / "product" / "app",
-        system_root / "system_ext" / "priv-app",
-        system_root / "system_ext" / "app",
-    ]
-
+    """Find all APK files anywhere in system or subpartitions tree."""
     found_apks = []
-    checked_dirs = set()
-
-    for d in candidate_dirs:
-        if d.is_dir() and d not in checked_dirs:
-            checked_dirs.add(d)
-            for f in d.rglob("*.apk"):
-                if f.is_file():
-                    found_apks.append(f)
-
+    seen_names = set()
+    for f in system_root.rglob("*.apk"):
+        if f.is_file():
+            found_apks.append(f)
     return sorted(found_apks, key=lambda p: p.name)
+
+
+def extract_single_partition_image(img_path: Path, dest_dir: Path) -> bool:
+    """Unpack a single partition image (EXT4/EROFS) into destination folder."""
+    fs_type = detect_filesystem(img_path)
+    logger.info(f"Unpacking partition '{img_path.name}' ({fs_type.upper()}) to '{dest_dir.name}'...")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    img_to_unpack = img_path
+    temp_raw = None
+    if is_sparse_image(img_path):
+        temp_raw = dest_dir.parent / f"_{img_path.stem}_raw.img"
+        img_to_unpack = unsparse_image(img_path, temp_raw)
+
+    success = False
+    if fs_type == "ext4":
+        success = extract_ext4_image(img_to_unpack, dest_dir)
+    elif fs_type == "erofs":
+        success = extract_erofs_image(img_to_unpack, dest_dir)
+    else:
+        logger.warning(f"Skipping unsupported image format for {img_path.name}: {fs_type}")
+
+    if temp_raw and temp_raw.exists():
+        temp_raw.unlink()
+
+    return success
 
 
 def extract_hyperos_apps(
@@ -140,33 +154,40 @@ def extract_hyperos_apps(
 
     logger.banner("OrangeUI HyperOS Extractor", f"Source: {source} -> Output: {output_dir}")
 
-    # Determine if source is an image or directory
+    # Determine if source is a single image or directory of images/files
     if source.is_file():
-        fs_type = detect_filesystem(source)
-        logger.info(f"Source is a filesystem image ({fs_type.upper()}). Unpacking...")
-
         temp_mount_dir = output_dir / "_donor_root"
         if temp_mount_dir.exists():
             shutil.rmtree(temp_mount_dir)
         temp_mount_dir.mkdir(parents=True, exist_ok=True)
 
-        img_to_unpack = source
-        if is_sparse_image(source):
-            temp_raw = output_dir / "_donor_raw.img"
-            img_to_unpack = unsparse_image(source, temp_raw)
-
-        if fs_type == "ext4":
-            if not extract_ext4_image(img_to_unpack, temp_mount_dir):
-                logger.fail("Failed to extract ext4 donor image.")
-        elif fs_type == "erofs":
-            if not extract_erofs_image(img_to_unpack, temp_mount_dir):
-                logger.fail("Failed to extract erofs donor image.")
-        else:
-            logger.fail(f"Unsupported filesystem image format: {fs_type}")
+        if not extract_single_partition_image(source, temp_mount_dir):
+            logger.fail(f"Failed to extract donor image '{source.name}'.")
 
         root_search_dir = temp_mount_dir
     else:
-        root_search_dir = source
+        # Check if directory contains .img partition files (e.g. from repack_super unpack)
+        img_files = [f for f in source.glob("*.img") if f.stat().st_size > 0]
+        # Prefer system, product, system_ext, mi_ext
+        priority_keywords = ["system", "product", "system_ext", "mi_ext"]
+        relevant_imgs = [f for f in img_files if any(k in f.stem.lower() for k in priority_keywords)]
+        if not relevant_imgs:
+            relevant_imgs = img_files
+
+        if relevant_imgs:
+            logger.info(f"Discovered {len(relevant_imgs)} partition image(s) in {source.name}. Unpacking...")
+            temp_mount_dir = output_dir / "_donor_root"
+            if temp_mount_dir.exists():
+                shutil.rmtree(temp_mount_dir)
+            temp_mount_dir.mkdir(parents=True, exist_ok=True)
+
+            for pimg in relevant_imgs:
+                part_dest = temp_mount_dir / pimg.stem
+                extract_single_partition_image(pimg, part_dest)
+
+            root_search_dir = temp_mount_dir
+        else:
+            root_search_dir = source
 
     all_apks = locate_apps_in_tree(root_search_dir)
     logger.info(f"Discovered {len(all_apks)} APK file(s) in donor system.")
@@ -193,14 +214,11 @@ def extract_hyperos_apps(
 
     logger.info(f"Selected {len(selected_apks)} APK(s) matching criteria.")
 
-    # Locate lib64 directory
-    lib64_dirs = [
-        root_search_dir / "system" / "lib64",
-        root_search_dir / "lib64",
-        root_search_dir / "product" / "lib64",
-        root_search_dir / "system_ext" / "lib64",
-    ]
-    existing_lib64 = [d for d in lib64_dirs if d.is_dir()]
+    # Locate all lib64 directories recursively
+    existing_lib64 = []
+    for d in root_search_dir.rglob("lib64"):
+        if d.is_dir() and d not in existing_lib64:
+            existing_lib64.append(d)
 
     extracted_records: Dict[str, Path] = {}
     manifest_map: Dict[str, str] = {}

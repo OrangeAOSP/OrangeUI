@@ -162,7 +162,7 @@ def extract_erofs_image(image_path: Path, output_dir: Path) -> bool:
     
     fsck_bin = check_command("fsck.erofs")
     if fsck_bin:
-        cmd = [fsck_bin, f"--extract={str(output_dir)}", str(image_path)]
+        cmd = [fsck_bin, f"--extract={str(output_dir)}", "--overwrite", str(image_path)]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode == 0:
             return True

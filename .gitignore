@@ -12,6 +12,9 @@ __pycache__/
 *.img
 *.img.xz
 *.bin
+# Extracted donor artifacts
+inject/*.apk
+inject/lib64/
 extracted/
 releases/*.img
 releases/*.zip
